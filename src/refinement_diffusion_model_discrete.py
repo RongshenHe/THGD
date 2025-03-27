@@ -19,7 +19,7 @@ from src.metrics.abstract_metrics import SumExceptBatchMetric, SumExceptBatchKL,
 from src import utils
 
 
-class ExpandDiscreteDenoisingDiffusion(pl.LightningModule):
+class RefinementDiscreteDenoisingDiffusion(pl.LightningModule):
     def __init__(self, cfg, dataset_infos, train_metrics, sampling_metrics, visualization_tools, extra_features,
                  domain_features):
         super().__init__()

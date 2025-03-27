@@ -18,7 +18,7 @@ from src.metrics.abstract_metrics import TrainAbstractMetricsDiscrete, TrainAbst
 
 # from coarsed_diffusion_model_discrete import DiscreteDenoisingDiffusion
 from src.coarse_diffusion_model_discrete import CoarseDiscreteDenoisingDiffusion
-from src.expand_diffusion_model_discrete import ExpandDiscreteDenoisingDiffusion
+from THGD.src.refinement_diffusion_model_discrete import ExpandDiscreteDenoisingDiffusion
 from src.diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
 warnings.filterwarnings("ignore", category=UserWarning)
 

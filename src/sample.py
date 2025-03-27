@@ -27,7 +27,7 @@ from src.diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
 from src.reduction.reduction import get_comm_coarsed_graph
 # from src.coarsed_diffusion_model_discrete import DiscreteDenoisingDiffusion
 from src.coarse_diffusion_model_discrete import CoarseDiscreteDenoisingDiffusion
-from src.expand_diffusion_model_discrete import ExpandDiscreteDenoisingDiffusion
+from THGD.src.refinement_diffusion_model_discrete import ExpandDiscreteDenoisingDiffusion
 from src.guidance.masked_guidance_diffusion_model_discrete import MaskedGuidanceDiscreteDenoisingDiffusion
 from src.guidance.masked_regressor_discrete import MaskedRegressorDiscrete
 from src.datasets.dataset_utils import expand_graphs, repeat_batch, coarsed_sample_loader, expanded_sample_loader

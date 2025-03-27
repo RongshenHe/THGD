@@ -480,20 +480,16 @@ def fitler_to_nx(i, original_smile, atom_encoder, bonds, build_with_charges=True
             print("Can't kekulize molecule")
 
 class coarsed_sample_loader:
-    def __init__(self, num_batch, num_nodes:int=None, coarsed_scaffold:str=None, guidance: list | tuple= None):
+    def __init__(self, 
+                 num_batch, 
+                 num_nodes:int=None, 
+                 coarsed_scaffold:str=None):
         self.num_batch = num_batch
         self.num_nodes = num_nodes
         self.scaffold_X = None
         self.scaffold_X_aug = None
         self.scaffold_E = None
-        self.guidance = None
         self.allow_extend = None
-
-        if guidance is not None:
-            if isinstance(guidance, tuple):
-                self.guidance = torch.tensor([list(guidance)] *num_batch )
-            elif isinstance(guidance, list):
-                self.guidance = torch.stack(guidance, 0)
 
         if coarsed_scaffold is not None:
             self.scaffold_X = coarsed_scaffold.x.long()
@@ -517,26 +513,19 @@ class coarsed_sample_loader:
                 'scaffold_X_aug': self.scaffold_X_aug,
                 'scaffold_E': self.scaffold_E,
                 'allow_extend': self.allow_extend,
-                'guidance': self.guidance[i] if self.guidance is not None else None
             }
 
-class expanded_sample_loader:
+class refinement_sample_loader:
     def __init__(self, 
                  num_batch, 
                  batch_size, 
                  coarsed_graphs, 
-                 sample_per_graph=None, 
-                 expanded_scaffold:str=None,
-                 mask_scaffold=True,
-                 guidance: list | tuple= None
+                 refinement_scaffold:str=None,
                  ):
         self.num_batch = num_batch
         self.batch_size = batch_size
 
         expanded_batch = expand_graphs(coarsed_graphs)
-        if sample_per_graph > 1:
-            self.num_batch = sample_per_graph // self.batch_size
-            expanded_batch = repeat_batch(expanded_batch, sample_per_graph)
         self.data_loader = iter(DataLoader(expanded_batch, batch_size=batch_size))
         
         self.scaffold_X = None
@@ -544,23 +533,16 @@ class expanded_sample_loader:
         self.scaffold_X_type_mask = None
         self.scaffold_E_type_mask = None
 
-        if (expanded_scaffold is not None) and mask_scaffold:
-            self.scaffold_X = expanded_scaffold.x_target
+        if refinement_scaffold is not None:
+            self.scaffold_X = refinement_scaffold.x_target
             self.scaffold_E = to_dense_adj(
-                edge_index=expanded_scaffold.masked_edge_index,
-                edge_attr=expanded_scaffold.edge_target)
+                edge_index=refinement_scaffold.masked_edge_index,
+                edge_attr=refinement_scaffold.edge_target)
             
-            self.scaffold_X_type_mask = expanded_scaffold.x_type_mask
+            self.scaffold_X_type_mask = refinement_scaffold.x_type_mask
             self.scaffold_E_type_mask = to_dense_adj(
-                edge_index=expanded_scaffold.masked_edge_index,
-                edge_attr=expanded_scaffold.edge_type_mask)
-        self.guidance = None            
-        if guidance is not None:
-
-            if isinstance(guidance, tuple):
-                self.guidance = torch.tensor([list(guidance)] *num_batch )
-            else:
-                self.guidance = torch.stack(guidance, 0)
+                edge_index=refinement_scaffold.masked_edge_index,
+                edge_attr=refinement_scaffold.edge_type_mask)
 
     def __len__(self):
         return self.num_batch
@@ -573,22 +555,7 @@ class expanded_sample_loader:
                 'scaffold_E': self.scaffold_E,
                 'scaffold_X_type_mask': self.scaffold_E,
                 'scaffold_E_type_mask': self.scaffold_E,
-                'guidance': self.guidance[i] if self.guidance is not None else None
             }
-
-class GuidedInMemoryDataset(Data):
-    def __init__(self, x: OptTensor = None, 
-                 edge_index: OptTensor = None, 
-                 edge_attr: OptTensor = None, 
-                 y: OptTensor = None, 
-                 pos: OptTensor = None,
-                 guidance = None,
-                 original_smiles = None,
-                 **kwargs):
-        super().__init__(x, edge_index, edge_attr, y, pos, **kwargs)
-        self.guidance = guidance
-        self.original_smiles = original_smiles
-
 
 ###############################################################################
 # FreeGress stuff
@@ -598,10 +565,6 @@ def rstrip1(s, c):
 from rdkit import Chem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit.Chem import rdMolDescriptors, Crippen
-
-# from src.metrics.properties import penalized_logp, qed
-# from src.metrics.sascorer import calculateScore
-from src.datasets.dataset_utils import GuidedInMemoryDataset
 from src.analysis.rdkit_functions import build_molecule, qed
 from torch_geometric.data import Batch
 import torch.nn.functional as F

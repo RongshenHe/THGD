@@ -7,9 +7,9 @@ This code was tested with PyTorch 2.2, cuda 11.8 and torch_geometrics 2.3.1
 
 ```bash
 conda create -n THGD python=3.10 -y
-pip install torch==2.2 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.2 --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
-pip install torch-sparse torch-scatter --index-url https://data.pyg.org/whl/torch-2.2.0%2Bcu118.html
+pip install torch-scatter==2.1.2
 
 pip install -e .
 ```

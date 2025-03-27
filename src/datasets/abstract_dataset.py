@@ -20,7 +20,7 @@ from src.datasets.dataset_utils import init_single_coarsed_G, init_single_expand
 from joblib import Parallel, delayed
 from src.datasets.dataset_utils import to_undirect
 from rdkit import Chem
-from src.reduction.type_mask import type_mask
+from src.reduction.structural_types import type_mask
 from src.datasets.dataset_utils import get_red_arg_dict
 from src.datasets.dataset_utils import (fitler_to_nx, charged_to_nx)
 

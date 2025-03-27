@@ -163,4 +163,6 @@ outputs
 lightning_logs
 report
 sample
+outputs*
+checkpoints*
 
