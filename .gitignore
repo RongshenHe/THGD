@@ -162,7 +162,8 @@ src/guidance/graphs
 outputs
 lightning_logs
 report
-sample
+# sample
 outputs*
-checkpoints*
+checkpoints/*
+checkpoints.tar.gz
 
