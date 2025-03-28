@@ -45,7 +45,7 @@ python main.py +guacamol_exp=refine
 Sampling requires:  
 1. Trained coarse model checkpoint  
 2. Trained refinement model checkpoint  
-3. Precomputed optimal prior distribution tensor (provided for default checkpoints; required for new datasets)  
+3. Precomputed optimal prior distribution tensor (obtain by preprocessing)  
 
 #### De Novo Generation  
 Use pre-configured sampling profiles:  
