@@ -6,7 +6,7 @@ from collections import Counter
 from scipy.sparse.linalg import eigs
 import itertools
 import random
-import heapq  # 引入heapq模块
+import heapq 
 
 
 def get_B0(n,node_degree,lap):

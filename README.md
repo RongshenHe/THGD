@@ -36,7 +36,7 @@ python main.py +guacamol_exp=coarse
 python main.py +guacamol_exp=refine
 ```
 
-⚠️ **Important Note**:  
+**Notes**:  
 - Dataset preprocessing (feature extraction for coarse/expanded graphs) runs on CPU and typically takes ~30 minutes (device-dependent). It is recommended to use our preprocessed dataset here:  
     - https://drive.google.com/file/d/1Rr5EOMLNOdOYCj6L5VzQaS95NooPDbyC/view?usp=sharing
 - This preprocessing must complete before training begins.  

@@ -20,6 +20,16 @@ from src.utils import to_dense
 import rdkit.Chem as Chem
 from rdkit.Chem import rdMolDescriptors, Crippen
 from src.analysis.rdkit_functions import qed
+    
+class RemoveYTransform:
+    def __call__(self, data):
+        data.y = torch.zeros((1, 0), dtype=torch.float)
+        return data
+    
+class SelectLogPTransform:
+    def __call__(self, data):
+        data.y = data.y[..., :1]
+        return data
 
 def get_red_arg_dict(cfg):
     reduction_args = dict()
@@ -58,33 +68,6 @@ def files_exist(files) -> bool:
     # NOTE: We return `False` in case `files` is empty, leading to a
     # re-processing of files on every instantiation.
     return len(files) != 0 and all([osp.exists(f) for f in files])
-
-
-class RemoveYTransform:
-    def __call__(self, data):
-        data.y = torch.zeros((1, 0), dtype=torch.float)
-        return data
-
-class SelectPenalizedLogPTransform:
-    def __call__(self, data):
-        data.y = data.y[..., -1].unsqueeze(-1)
-        return data
-    
-class SelectLogPTransform:
-    def __call__(self, data):
-        data.y = data.y[..., :1]
-        return data
-
-class SelectMuTransform:
-    def __call__(self, data):
-        data.y = data.y[..., :1]
-        return data
-
-
-class SelectHOMOTransform:
-    def __call__(self, data):
-        data.y = data.y[..., 1:]
-        return data
     
 def filter_valid_mol(G, atom_decoder):
     if not nx.is_connected(G):
@@ -188,40 +171,6 @@ def charged_to_nx(data, atom_encoder, bonds, build_with_charges=True, cal_prop=T
         G.graph['y'] = torch.tensor([[logP, qed, sa_score, P_logP]], dtype=torch.float32)
     return G
 
-# def to_nx(data, atom_encoder, bonds, cal_prop=True, kekulize=False):
-#     if isinstance(data,str):
-#         mol = Chem.MolFromSmiles(data) 
-#     else: mol = data
-
-#     if kekulize:
-#         try:
-#             Chem.Kekulize(mol,clearAromaticFlags=False)
-#         except Exception as e:
-#             print(f'{e}, retry with clear aromatic') 
-#             try:
-#                 Chem.Kekulize(mol,clearAromaticFlags=True)
-#             except Exception as e:
-#                 print(f'{e}, Failed') 
-#                 return None
-    
-#     G = nx.Graph() 
-#     for atom in mol.GetAtoms():
-#         symbol = atom.GetSymbol()
-#         atom_idx = atom.GetIdx()
-#         G.add_node(atom_idx, label=atom_encoder[symbol])  
-    
-#     for bond in mol.GetBonds():
-#         begin_idx = bond.GetBeginAtomIdx()
-#         end_idx = bond.GetEndAtomIdx()
-#         bond_type = bonds[bond.GetBondType()]
-#         G.add_edge(begin_idx, end_idx, bond_type=bond_type)
-
-#     if cal_prop:
-#         logP, qed, sa_score = calculate_base_properties(mol)
-#         P_logP = penalized_property(mol)
-#         G.graph['y'] = torch.tensor([[logP, qed, sa_score, P_logP]], dtype=torch.float32)
-#     return G
-
 def nx_to_mol(G, atom_decoder, bonds):
     """
     将 NetworkX 图对象 G 转换为 RDKit 分子对象。
@@ -307,7 +256,7 @@ def expand_graphs(coarsed_graphs, collate=True):
             node_attrs.append({'node_count': count, 'ring_num': ring_num, 'node_map':list(range(offset,offset+count))})
             offset += count
         nodes = np.array(nodes)
-        edge_index = np.array(adjacency_matrix.nonzero())  # 获取边的索引
+        edge_index = np.array(adjacency_matrix.nonzero())
         edge_index[:,0] = nodes[edge_index[:,0]]        # edge index map to the node labels
         edge_index[:,1] = nodes[edge_index[:,1]]
 
@@ -316,8 +265,6 @@ def expand_graphs(coarsed_graphs, collate=True):
         largest_cc = list(nx.connected_components(reduced_G))  # 获取最大连通子图的节点集合
         if len(largest_cc) > 1:
             reduced_G = reduced_G.subgraph(max(largest_cc,key=len)).copy()  # 创建最大连通子图的副本
-            # reduced_G = reduced_G.subgraph(largest_cc[0]).copy()  # 创建最大连通子图的副本
-            # reduced_G = nx.convert_node_labels_to_integers(reduced_G)
 
         expanded_G = get_expanded_graph(reduced_G,reindex=True)
         x_type_mask, masked_edge_index, edge_type_mask = init_single_expanded_G(expanded_G)
@@ -359,11 +306,11 @@ def graph_from_scaffold(scaffold_smile: str,
     :param scaffold_smile: SMILES string representing the molecular scaffold
     :return: PyG Data object
     """
-    # Step 2: Initialize lists to store node and edge information
+    # Step 1: Initialize lists to store node and edge information
     G = charged_to_nx(scaffold_smile, e_dataset_infos.atom_encoder, e_dataset_infos.bonds)
     
 
-    # Step 5: Construct the PyG Data object
+    # Step 2: Construct the PyG Data object
     reduction_args = e_dataset_infos.reduction_args
 
     if reduction_args['reduction_type'] == 'comm':
@@ -384,6 +331,7 @@ def graph_from_scaffold(scaffold_smile: str,
         
         coarsed_G = get_custom_coarsed_graph(G=G,split_ring=reduction_args['split_ring'],reindex=False)
     else: raise NotImplementedError
+    
     coarsed_G = get_expand_check(G, coarsed_G, e_dataset_infos.max_valencies)
     expanded_G = get_expanded_graph(coarsed_G, reindex=True)
     coarsed_G = nx.convert_node_labels_to_integers(coarsed_G)
@@ -399,8 +347,6 @@ def graph_from_scaffold(scaffold_smile: str,
     masked_edge_index, [edge_type_mask, edge_target] = to_undirect(masked_edge_index,[edge_type_mask, edge_target])
 
     allow_extend = torch.tensor(list(nx.get_node_attributes(coarsed_G, 'allow_extend').values()),dtype=bool)
-    print(nx.get_node_attributes(coarsed_G, 'node_count').values())
-    print(nx.get_node_attributes(coarsed_G, 'allow_extend').values())
 
     # Do not do onehot, the mask is applied on sampled_s
     coarsed_graph_data = Data(
@@ -440,10 +386,6 @@ def fitler_to_nx(i, original_smile, atom_encoder, bonds, build_with_charges=True
     except:
         return None
 
-    ###############################################################
-    #se gli smiles della molecola ricostruita e quello originale
-    #sono identici, non è neanche necessario controllarne le proprietà.
-    #Se differiscono, potrebbero differirne anche le proprietà. Vediamo un po...
     if(smiles_2D == reconstructed_smiles):
         tmp_mol_original_smile       = mol
         tmp_mol_smiles_2D            = reconstructed_mol
@@ -520,7 +462,7 @@ class refinement_sample_loader:
                  num_batch, 
                  batch_size, 
                  coarsed_graphs, 
-                 refinement_scaffold:str=None,
+                 expanded_scaffold:str=None,
                  ):
         self.num_batch = num_batch
         self.batch_size = batch_size
@@ -533,16 +475,16 @@ class refinement_sample_loader:
         self.scaffold_X_type_mask = None
         self.scaffold_E_type_mask = None
 
-        if refinement_scaffold is not None:
-            self.scaffold_X = refinement_scaffold.x_target
+        if expanded_scaffold:
+            self.scaffold_X = expanded_scaffold.x_target
             self.scaffold_E = to_dense_adj(
-                edge_index=refinement_scaffold.masked_edge_index,
-                edge_attr=refinement_scaffold.edge_target)
+                edge_index=expanded_scaffold.masked_edge_index,
+                edge_attr=expanded_scaffold.edge_target)
             
-            self.scaffold_X_type_mask = refinement_scaffold.x_type_mask
+            self.scaffold_X_type_mask = expanded_scaffold.x_type_mask
             self.scaffold_E_type_mask = to_dense_adj(
-                edge_index=refinement_scaffold.masked_edge_index,
-                edge_attr=refinement_scaffold.edge_type_mask)
+                edge_index=expanded_scaffold.masked_edge_index,
+                edge_attr=expanded_scaffold.edge_type_mask)
 
     def __len__(self):
         return self.num_batch
@@ -556,6 +498,17 @@ class refinement_sample_loader:
                 'scaffold_X_type_mask': self.scaffold_E,
                 'scaffold_E_type_mask': self.scaffold_E,
             }
+
+class GraphInMemoryDataset(Data):
+    def __init__(self, x: OptTensor = None, 
+                 edge_index: OptTensor = None, 
+                 edge_attr: OptTensor = None, 
+                 y: OptTensor = None, 
+                 pos: OptTensor = None,
+                 original_smiles = None,
+                 **kwargs):
+        super().__init__(x, edge_index, edge_attr, y, pos, **kwargs)
+        self.original_smiles = original_smiles
 
 ###############################################################################
 # FreeGress stuff
@@ -585,9 +538,6 @@ def clean_mol(mol, uncharge=True):
 def graph2mol(data, atom_decoder):
     data = Batch.from_data_list([data])
 
-    #print(data)
-
-    #smonta la variabile "data" costruita sopra e ri-ottiene nodi ed archo
     dense_data, node_mask = to_dense(data.x, data.edge_index, data.edge_attr, data.batch)
     dense_data = dense_data.mask(node_mask, collapse=True)
     X, E = dense_data.X, dense_data.E
@@ -596,10 +546,6 @@ def graph2mol(data, atom_decoder):
     atom_types = X[0]
     edge_types = E[0]
 
-    #Questi sono anche i metodi utilizzati quando calcolavamo mu/HOMO in qm9, quindi
-    #possiamo fidarci del fatto che funzionino (e comunque sono piuttosto utilizzati
-    #in quanto provengono da un paper piuttosto citato da cui hanno preso tutti lo
-    #spezzone di codice)
     reconstructed_mol = build_molecule(atom_types, edge_types, atom_decoder)
     return reconstructed_mol
 
@@ -661,24 +607,5 @@ def mol2graph(mol, types, bonds, i, original_smiles = None, estimate_guidance = 
     edge_index = edge_index[:, perm]
     edge_attr = edge_attr[perm]
 
-    #stime di plogp, mw, sas e logp
-    guidance = None
-    if(estimate_guidance):
-        guidance = torch.zeros((1, 5))
-        estimated_plogp = -1 #penalized_logp(mol)
-        estimated_qed   = qed(original_smiles)
-        estimated_mw    = rdMolDescriptors.CalcExactMolWt(mol)
-        estimated_sas   = -1 #calculateScore(mol)
-        estimated_logp  = Crippen.MolLogP(mol)
-        
-        guidance[0, 0] = estimated_plogp
-        guidance[0, 1] = estimated_qed
-        guidance[0, 2] = estimated_mw
-        guidance[0, 3] = estimated_sas
-        guidance[0, 4] = estimated_logp
-    
-    #questo è l'oggetto effettivo che viene poi usato durante il
-    #training. Più in basso verrà salvato in un formato gradito da
-    #pytorch per poter essere riutilizzato più volte
-    return GuidedInMemoryDataset(x=x, edge_index=edge_index, edge_attr=edge_attr, 
-                                y=y, idx=i, guidance=guidance, original_smiles = original_smiles)
+    return GraphInMemoryDataset(x=x, edge_index=edge_index, edge_attr=edge_attr, 
+                                y=y, idx=i, original_smiles = original_smiles)

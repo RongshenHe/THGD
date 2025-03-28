@@ -20,7 +20,7 @@ general:
     resample_step: 3
     skip: 2
     remove_h: False
-    resume: /data2/chensm22/HRS/MHdiff/outputs/2024-11-14/22-55-41-coarsed_guacamol_custom/checkpoints/coarsed_guacamol_custom_resume/epoch=191.ckpt
+    resume: null
     test_only: null
     check_val_every_n_epochs: 2
     val_check_interval: null
@@ -40,11 +40,11 @@ train:
     batch_size: 512
     save_model: True
     lr: 5e-5
-    devices: [0, 1]
+    devices: [0]
     num_workers: 4
 model:
     n_layers: 8
-    lambda_train: [2, 2, 0]
+    lambda_train: [2, 5, 0]
     type: 'discrete'
     transition: 'marginal'                          # uniform or marginal
     model: 'graph_tf'

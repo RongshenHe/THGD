@@ -40,7 +40,7 @@ train:
     batch_size: 96
     save_model: True
     lr: 1e-4
-    devices: [0, 1]
+    devices: [0]
     num_workers: 4
 model:
     n_layers: 12

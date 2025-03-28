@@ -9,9 +9,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-# from pytorch_lightning.utilities.warnings import PossibleUserWarning
-import pprint
 
 from src import utils
 from src.metrics.abstract_metrics import TrainAbstractMetricsDiscrete, TrainAbstractMetrics

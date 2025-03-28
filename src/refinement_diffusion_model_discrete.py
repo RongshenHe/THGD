@@ -148,26 +148,8 @@ class RefinementDiscreteDenoisingDiffusion(pl.LightningModule):
             weight_decay=self.cfg.train.weight_decay
         )
         
-        # # 定义学习率调度器
-        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        #     optimizer,
-        #     mode="min",  # 目标是减少监控的指标，例如 validation loss
-        #     factor=3/4,  # 每次减少学习率的倍数
-        #     patience=8,  # 当指标在 patience 个 epoch 内没有改善时降低学习率
-        #     threshold=1e-2,  # 衡量指标是否改善的最小变化量
-        #     cooldown=2,  # 学习率减少后冷却的 epoch 数
-        #     min_lr=self.cfg.train.lr/10,  # 学习率的下限
-        # )
-        
-        # 返回优化器和调度器
         return {
             "optimizer": optimizer,
-            # "lr_scheduler": {
-            #     "scheduler": scheduler,
-            #     "monitor": "val/epoch_NLL",  # 必须确保训练代码中有 val_loss
-            #     "interval": "epoch",  # 调度器在 epoch 级别更新
-            #     "frequency": 1,  # 每个 epoch 检查一次
-            # },
         }
 
     def on_fit_start(self) -> None:
@@ -701,14 +683,16 @@ class RefinementDiscreteDenoisingDiffusion(pl.LightningModule):
         return molecule_list
 
     def mask_scaffold(self, scaffold_attrs, sampled_s):
-        if len(scaffold_attrs) != 0 and scaffold_attrs[0] is not None:
-            # scaffold extension mask operation
-            scaffold_X, scaffold_E = scaffold_attrs
-            n_nodes_scaffold = scaffold_X.shape[0]
+        try:
+            if not len(scaffold_attrs)==0 and scaffold_attrs[0]:
+                # scaffold extension mask operation
+                scaffold_X, scaffold_E = scaffold_attrs
+                n_nodes_scaffold = scaffold_X.shape[0]
 
-            sampled_s.X[:, :n_nodes_scaffold] = scaffold_X
-            sampled_s.E[:, :n_nodes_scaffold, :n_nodes_scaffold] = scaffold_E
-        return sampled_s
+                sampled_s.X[:, :n_nodes_scaffold] = scaffold_X
+                sampled_s.E[:, :n_nodes_scaffold, :n_nodes_scaffold] = scaffold_E
+        finally:
+            return sampled_s
 
     def sample_p_zs_given_zt(self, s, t, X_t, E_t, y_t, X_type_mask, E_type_mask, node_mask, scaffold_attrs, check_validity=False):
         """Samples from zs ~ p(zs | zt). Only used during sampling.
@@ -762,10 +746,7 @@ class RefinementDiscreteDenoisingDiffusion(pl.LightningModule):
         assert ((prob_X.sum(dim=-1) - 1).abs() < 1e-4).all()
         assert ((prob_E.sum(dim=-1) - 1).abs() < 1e-4).all()
 
-        if check_validity:
-            sampled_s = expand_diffusion_utils.sample_discrete_features_with_validity_check(probX=prob_X, probE=prob_E, X_type_mask=X_type_mask, E_type_mask=E_type_mask, node_mask=node_mask, max_valencies=self.dataset_info.max_valencies)
-        else:
-            sampled_s = expand_diffusion_utils.sample_discrete_features(probX=prob_X, probE=prob_E, X_type_mask=X_type_mask, E_type_mask=E_type_mask, node_mask=node_mask)
+        sampled_s = expand_diffusion_utils.sample_discrete_features(probX=prob_X, probE=prob_E, X_type_mask=X_type_mask, E_type_mask=E_type_mask, node_mask=node_mask)
 
         sampled_s = self.mask_scaffold(scaffold_attrs, sampled_s)
 

@@ -54,12 +54,7 @@ class GuacamolDataModule(MolecularDataModule):
         self.reduction_args = get_red_arg_dict(cfg)
 
         transform = RemoveYTransform() if not guidance else None
-        if guidance:
-            target = getattr(cfg.guidance, 'guidance_target', None)
-            if target == 'logp':
-                transform = SelectLogPTransform()
-            else:
-                transform = None
+
         base_path = pathlib.Path(os.path.realpath(__file__)).parents[2]
         root_path = os.path.join(base_path, self.datadir)
         datasets = {

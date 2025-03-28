@@ -9,8 +9,7 @@ import torch.distributed as dist
 from tqdm import tqdm
 
 from src.models.transformer_model import GraphTransformer
-from src.diffusion.noise_schedule import DiscreteUniformTransition, PredefinedNoiseScheduleDiscrete,\
-    MarginalUniformTransition, CoarsedMarginalUniformTransition
+from src.diffusion.noise_schedule import PredefinedNoiseScheduleDiscrete, CoarsedMarginalUniformTransition
 from src.diffusion import coarse_diffusion_utils
 from src.metrics.train_metrics import TrainLossDiscrete, CoarsedTrainLossDiscrete
 from src.metrics.abstract_metrics import SumExceptBatchMetric, SumExceptBatchKL, NLL

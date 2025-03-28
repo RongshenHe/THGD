@@ -4,7 +4,7 @@ num_batch : 60
 
 precision: high  # high | medium, 
 
-scaffold : null # fill the SMILES of the scaffold here, enabled when not null
+# scaffold : null # fill the SMILES of the scaffold here, enabled when not null
 
 # scaffold : "C1C=CNC2=CC=CC=C21"  # 1,3-Dimethylquinolin-4(1H)-one
 # scaffold : "CC1=CN(C2=CC=CC=C2C1=O)C"  # 1,4-Dihydroquinoline

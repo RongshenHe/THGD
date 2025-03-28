@@ -19,7 +19,7 @@ general:
     skip: 2
     wandb: 'online'
     remove_h: False
-    resume: /data2/chensm22/HRS/MHdiff/outputs/checkpoints/epoch=81.ckpt
+    resume: null
     test_only: null
     check_val_every_n_epochs: 2
     val_check_interval: null
